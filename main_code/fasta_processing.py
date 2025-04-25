@@ -9,10 +9,11 @@ setup_logger("GetIntronSeq.log")
 
 
 # Function to preprocess a FASTA file to combine multi-line sequences into a single line per contig.
-def preprocess_fasta(fasta_file, out_file):
+def preprocess_fasta(fasta_file):
     """
     Preprocesses a FASTA file to ensure each contig's sequence is on a single line.
     """
+    out_file = "/data" + fasta_file.replace(".fasta", "_preprocessed.fasta")
     logging.info(f"Preprocessing FASTA file: {fasta_file}")
     with open(fasta_file, "r") as fasta:
         with open(out_file, "w") as out:
