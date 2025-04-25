@@ -13,7 +13,7 @@ def preprocess_fasta(fasta_file):
     """
     Preprocesses a FASTA file to ensure each contig's sequence is on a single line.
     """
-    out_file = "/data" + fasta_file.replace(".fasta", "_preprocessed.fasta")
+    out_file = fasta_file.replace(".fasta", "_preprocessed.fasta")
     logging.info(f"Preprocessing FASTA file: {fasta_file}")
     with open(fasta_file, "r") as fasta:
         with open(out_file, "w") as out:
@@ -84,7 +84,7 @@ def add_sequences(engine, fasta_file):
                                 )
                             updated_row = conn.execute(check_stmt).fetchone()
         logging.info(f"Sequences added to the database from {fasta_file}")
-    return
+    return engine
 
 # Function to check if a FASTA file is already preprocessed
 def is_fasta_preprocessed(fasta_file):

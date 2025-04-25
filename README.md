@@ -17,7 +17,6 @@ This project processes genomic data to extract intron information from GFF files
 - Python 3.8 or higher
 - Required Python libraries:
   - `gffutils`
-  - `pandas`
   - `sqlalchemy`
   - `zipfile`
   - **NEW**: `logging`
