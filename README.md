@@ -23,7 +23,7 @@ This project processes genomic data to extract intron information from GFF files
 
 Install the required libraries using pip:
 ```bash
-pip install gffutils pandas sqlalchemy logging
+pip install gffutils sqlalchemy logging
 ```
 
 ## File Structure
