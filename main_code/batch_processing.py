@@ -1,6 +1,6 @@
 import os
 import logging
-from gff_processing import make_introns_file
+from main_code.input_processing import make_introns_file
 from fasta_processing import preprocess_fasta, is_fasta_preprocessed
 from database import create_database, add_sequences
 from output import write_fastas_zip

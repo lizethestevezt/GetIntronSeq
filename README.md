@@ -9,8 +9,9 @@ This project processes genomic data to extract intron information from GFF files
 - Updates the database with sequences from FASTA files.
 - Preprocesses multi-line FASTA files into a single-line format per contig.
 - Generates FASTA files for each intron and stores them in a ZIP archive.
-- **NEW**: Added support for handling multiple GFF and FASTA files in batch mode.
+- Added support for handling multiple GFF and FASTA files in batch mode.
 - **NEW**: Improved error handling and logging for better debugging.
+- **NEW**: Dynamically handles missing introns or sequences in GFF files.
 
 ## Requirements
 
@@ -19,7 +20,7 @@ This project processes genomic data to extract intron information from GFF files
   - `gffutils`
   - `sqlalchemy`
   - `zipfile`
-  - **NEW**: `logging`
+  - `logging`
 
 Install the required libraries using pip:
 ```bash
@@ -28,31 +29,34 @@ pip install gffutils pandas sqlalchemy logging
 
 ## File Structure
 
-- **`main.py`**: Main script that orchestrates the workflow by calling functions from other modules.
+- **`main_v0.2.py`**: Main script that processes a single input file and its corresponding FASTA file (if needed).
+- **`batch_processing.py`**: Handles batch processing of multiple GFF and FASTA files.
 - **`metadata.py`**: Contains the database schema and metadata definitions.
-- **`gff_processing.py`**: Handles GFF file processing, including extracting intron information.
+- **`input_processing.py`**: Handles input file processing, including extracting intron information and checking for introns or sequences.
 - **`database.py`**: Manages the SQLite database, including creating and populating tables.
 - **`fasta_processing.py`**: Handles FASTA file preprocessing and updating the database with sequences.
 - **`output.py`**: Generates FASTA files for each intron and stores them in a ZIP archive.
-- **`batch_processing.py`**: **NEW**: Handles batch processing of multiple GFF and FASTA files.
-- **Input Files**:
-  - `Dioscorea_dumetorum_contig1.gff`: Example GFF file containing genomic annotations.
-  - `Dioscorea_dumetorum_contig1.fasta`: Example FASTA file containing genomic sequences.
-- **Output Files**:
-  - `Dioscorea_dumetorum_contig1_introns.gff`: Extracted intron information from the GFF file.
-  - `Dioscorea_dumetorum_contig1_preprocessed.fasta`: Preprocessed FASTA file with single-line sequences.
-  - `introns.zip`: ZIP archive containing FASTA files for each intron.
+- **`logger_config.py`**: Centralized logging configuration for all scripts.
+- **`file_type_validation.py`**: Detects file formats.
+
+## Input Files
+
+- **GFF File**: A file containing genomic annotations (e.g., `Dioscorea_dumetorum_contig1.gff`).
+- **FASTA File**: A file containing genomic sequences (e.g., `Dioscorea_dumetorum_contig1.fasta`).
+
+## Output Files
+
+- **Extracted Introns File**: A GFF file containing intron information (e.g., `Dioscorea_dumetorum_contig1_introns.gff`).
+- **Preprocessed FASTA File**: A FASTA file with single-line sequences (e.g., `Dioscorea_dumetorum_contig1_preprocessed.fasta`).
+- **ZIP Archive**: A ZIP file containing FASTA files for each intron (e.g., `introns.zip`).
 
 ## Usage
 
-### Prepare Input Files
-Place your GFF files (e.g., `Dioscorea_dumetorum_contig1.gff`) and FASTA files (e.g., `Dioscorea_dumetorum_contig1.fasta`) in the same directory as the script.
-
-### Run the Script
-Execute the script using Python:
-```bash
-python main_v0.2.py
-```
+### Single File Processing
+1. Run the main script:
+   ```bash
+   python main_v0.2.py
+   ```
 
 ### Batch Processing
 To process multiple GFF and FASTA files in batch mode, use the batch processing script:

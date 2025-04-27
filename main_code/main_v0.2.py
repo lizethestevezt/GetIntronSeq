@@ -1,19 +1,48 @@
-from gff_processing import make_introns_file
+from input_processing import make_introns_file, input_contains_introns, input_contains_sequences, make_fasta_file
 from database import create_database
 from fasta_processing import preprocess_fasta, is_fasta_preprocessed, add_sequences
 from output import write_fastas_zip
+from file_type_validation import detect_file_format
 
+def main():
+    # Ask for the input file path
+    input_file = input("Enter the path to the input file: ").strip()
+    format_type = detect_file_format(input_file)
+    print(f"Detected file format: {format_type}")
 
-# Main script
-introns_file = make_introns_file("data/Dioscorea_dumetorum_v1.0.gff")
-db = create_database(introns_file)
+    if format_type == "Unknown":
+        raise ValueError("Unsupported file format. Please provide GFF, GFF3 or GTF file.")
 
-# Check if the FASTA file needs preprocessing
-fasta_file = "data/Dioscorea_dumetorum_v1.0.fasta"
-if not is_fasta_preprocessed(fasta_file):
-    fasta_file = preprocess_fasta(fasta_file)  # Use the preprocessed file
+    # Check if the input file contains introns
+    if not input_contains_introns(input_file):
+        print("The input file does not contain introns. Exiting.")
+        return
 
-# Add sequences to the database and write FASTA files to a ZIP archive
-db = add_sequences(db, fasta_file)
-write_fastas_zip(db, "introns")
+    # Check if the input file contains sequences
+    if not input_contains_sequences(input_file):
+        print("The input file does not contain sequences.")
+        fasta_file = input("Enter the path to the corresponding FASTA file: ").strip()
+    else:
+        # If sequences are present in the input file, use it as the FASTA file
+        fasta_file = make_fasta_file(input_file)
+        print(f"FASTA file created: {fasta_file}")
+
+    # Process the input file to extract introns
+    introns_file = make_introns_file(input_file)
+
+    # Create the database
+    db = create_database(introns_file)
+
+    # Check if the FASTA file needs preprocessing
+    if not is_fasta_preprocessed(fasta_file):
+        fasta_file = preprocess_fasta(fasta_file)  # Use the preprocessed file
+
+    # Add sequences to the database and write FASTA files to a ZIP archive
+    db = add_sequences(db, fasta_file)
+    write_fastas_zip(db, "introns")
+
+    print("Processing completed successfully.")
+
+if __name__ == "__main__":
+    main()
 
