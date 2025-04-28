@@ -3,10 +3,35 @@ from database import create_database
 from fasta_processing import preprocess_fasta, is_fasta_preprocessed, add_sequences
 from output import write_fastas_zip
 from file_type_validation import detect_file_format
+import argparse
 
 def main():
-    # Ask for the input file path
-    input_file = input("Enter the path to the input file: ").strip()
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description="GetIntronSeq: Extract intron sequences from genome files.")
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Path to the input file (GFF, GFF3, or GTF format)."
+    )
+    parser.add_argument(
+        "--fasta",
+        required=False,
+        help="Path to the corresponding FASTA file (if sequences are not in the input file)."
+    )
+    parser.add_argument(
+        "--output",
+        required=False,
+        default="introns",
+        help="Name of the output directory or ZIP archive (default: 'introns')."
+    )
+    args = parser.parse_args()
+
+    # Extract arguments
+    input_file = args.input
+    fasta_file = args.fasta
+    output_name = args.output
+
+    # Detect file format
     format_type = detect_file_format(input_file)
     print(f"Detected file format: {format_type}")
 
@@ -20,8 +45,8 @@ def main():
 
     # Check if the input file contains sequences
     if not input_contains_sequences(input_file):
-        print("The input file does not contain sequences.")
-        fasta_file = input("Enter the path to the corresponding FASTA file: ").strip()
+        if not fasta_file:
+            raise ValueError("The input file does not contain sequences. Please provide a FASTA file using the --fasta argument.")
     else:
         # If sequences are present in the input file, use it as the FASTA file
         fasta_file = make_fasta_file(input_file)
@@ -39,7 +64,7 @@ def main():
 
     # Add sequences to the database and write FASTA files to a ZIP archive
     db = add_sequences(db, fasta_file)
-    write_fastas_zip(db, "introns")
+    write_fastas_zip(db, output_name)
 
     print("Processing completed successfully.")
 

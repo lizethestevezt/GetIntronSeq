@@ -12,6 +12,8 @@ This project processes genomic data to extract intron information from GFF files
 - Added support for handling multiple GFF and FASTA files in batch mode.
 - **NEW**: Improved error handling and logging for better debugging.
 - **NEW**: Dynamically handles missing introns or sequences in GFF files.
+- **NEW**: Command-line arguments for flexible input/output handling.
+  - Specify input files, optional FASTA files, and output names directly from the command line.
 
 ## Requirements
 
@@ -53,10 +55,36 @@ pip install gffutils sqlalchemy logging
 ## Usage
 
 ### Single File Processing
-1. Run the main script:
+1. Run the main script with the required arguments:
    ```bash
-   python main_v0.2.py
+   python main_v0.2.py --input <path_to_input_file> [--fasta <path_to_fasta_file>] [--output <output_name>]
    ```
+2. Arguments:
+* `--input` (required): Path to the input file (GFF, GFF3, or GTF format).
+* `--fasta` (optional): Path to the corresponding FASTA file (if sequences are not in the input file).
+* `--output` (optional): Name of the output directory or ZIP archive (default: `introns`).
+3. What the program does:
+* Detects the file format of the input file.
+* Checks if the input file contains introns. If not, the program exits with a message.
+* Checks if the input file contains sequences:
+*  * If sequences are missing, the program requires a FASTA file to be provided using the --fasta argument.
+*  * If sequences are present, the program generates a FASTA file from the input file.
+* Processes the input file to extract introns, create a database, and generate output files.
+
+---
+
+Example Commands
+**Example 1: Input File with Sequences**
+```bash
+python main_v0.2.py --input [Dioscorea_dumetorum_contig1.gff](http://_vscodecontentref_/1) --output introns_output
+````
+
+
+**Example 2: Input File Without Sequences**
+```bash
+python main_v0.2.py --input data/no_sequences.gff --fasta [Dioscorea_dumetorum_contig1.fasta](http://_vscodecontentref_/2) --output introns_output
+```
+
 
 ### Batch Processing
 To process multiple GFF and FASTA files in batch mode, use the batch processing script:
