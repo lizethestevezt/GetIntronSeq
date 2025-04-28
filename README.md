@@ -53,7 +53,7 @@ pip install gffutils sqlalchemy
 
 - **Extracted Introns File**: A GFF file containing intron information (e.g., `Dioscorea_dumetorum_contig1_introns.gff`).
 - **Preprocessed FASTA File**: A FASTA file with single-line sequences (e.g., `Dioscorea_dumetorum_contig1_preprocessed.fasta`).
-- **ZIP Archive**: A ZIP file containing FASTA files for each intron (e.g., [introns.zip](http://_vscodecontentref_/0)).
+- **ZIP Archive**: A ZIP file containing FASTA files for each intron (e.g., `introns.zip`).
 - **Batch Processing Output**: For batch processing, all output files are stored in the specified output directory.
 
 ## Usage
