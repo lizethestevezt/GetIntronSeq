@@ -10,10 +10,13 @@ This project processes genomic data to extract intron information from GFF files
 - Preprocesses multi-line FASTA files into a single-line format per contig.
 - Generates FASTA files for each intron and stores them in a ZIP archive.
 - Added support for handling multiple GFF and FASTA files in batch mode.
-- **NEW**: Improved error handling and logging for better debugging.
-- **NEW**: Dynamically handles missing introns or sequences in GFF files.
+- Improved error handling and logging for better debugging.
+- Dynamically handles missing introns or sequences in GFF files.
 - **NEW**: Command-line arguments for flexible input/output handling.
   - Specify input files, optional FASTA files, and output names directly from the command line.
+- **NEW**: Automatically detects if GFF files contain sequences and prompts for a FASTA file if needed.
+- **NEW**: Supports batch processing for `.gz` archives and directories containing multiple GFF and FASTA files.
+- **NEW**: Handles GZIP files by extracting their contents and processing them automatically.
 
 ## Requirements
 
@@ -22,11 +25,10 @@ This project processes genomic data to extract intron information from GFF files
   - `gffutils`
   - `sqlalchemy`
   - `zipfile`
-  - `logging`
 
 Install the required libraries using pip:
 ```bash
-pip install gffutils sqlalchemy logging
+pip install gffutils sqlalchemy
 ```
 
 ## File Structure
@@ -43,14 +45,16 @@ pip install gffutils sqlalchemy logging
 
 ## Input Files
 
-- **GFF File**: A file containing genomic annotations (e.g., `Dioscorea_dumetorum_contig1.gff`).
+- **GFF/GTF/GFF3 File**: A file containing genomic annotations (e.g., `Dioscorea_dumetorum_contig1.gff`).
 - **FASTA File**: A file containing genomic sequences (e.g., `Dioscorea_dumetorum_contig1.fasta`).
+- **GZIP Archive**: A `.gz` file containing multiple GFF or FASTA files.
 
 ## Output Files
 
 - **Extracted Introns File**: A GFF file containing intron information (e.g., `Dioscorea_dumetorum_contig1_introns.gff`).
 - **Preprocessed FASTA File**: A FASTA file with single-line sequences (e.g., `Dioscorea_dumetorum_contig1_preprocessed.fasta`).
-- **ZIP Archive**: A ZIP file containing FASTA files for each intron (e.g., `introns.zip`).
+- **ZIP Archive**: A ZIP file containing FASTA files for each intron (e.g., [introns.zip](http://_vscodecontentref_/0)).
+- **Batch Processing Output**: For batch processing, all output files are stored in the specified output directory.
 
 ## Usage
 
@@ -73,73 +77,87 @@ pip install gffutils sqlalchemy logging
 
 ---
 
-Example Commands
-**Example 1: Input File with Sequences**
-```bash
-python main_v0.2.py --input [Dioscorea_dumetorum_contig1.gff](http://_vscodecontentref_/1) --output introns_output
-````
-
-
-**Example 2: Input File Without Sequences**
-```bash
-python main_v0.2.py --input data/no_sequences.gff --fasta [Dioscorea_dumetorum_contig1.fasta](http://_vscodecontentref_/2) --output introns_output
-```
-
 
 ### Batch Processing
-To process multiple GFF and FASTA files in batch mode, use the batch processing script:
+Batch processing allows you to process multiple GFF and FASTA files or `.gz` archives in a single run.
+
+1. Run the main script with the `--batch` flag:
+   ```bash
+   python main_v0.2.py --input <path_to_directory_or_gz_file> --batch [--output <output_name>]
+  ```
+
+2. **Arguments:**
+
+* `--input` (required): Path to the directory or .gz archive containing multiple files.
+* `--batch` (required): Enables batch processing mode.
+* `--output` (optional): Name of the output directory or ZIP archive (default: introns).
+
+3. **What the program does:**
+* If the input is a `.gz` archive, it extracts the archive into a temporary directory and processes all files inside.
+* If the input is a directory, it processes all GFF and FASTA files in the directory.
+* For each file, it checks if sequences are present in the GFF file:
+  * If sequences are missing, the program prompts the user to provide the corresponding FASTA file.
+* Extracts introns, creates a database, and generates output files for each file.
+
+---
+
+## Example Commands
+
+**Example 1: Batch Processing for a GZIP Archive**
 ```bash
-python batch_processing.py
+python main_v0.2.py --input data/multiple_files.gff.gz --batch --output introns_output
 ```
+
+* **What it does:**
+  * Extracts the `.gz` archive into a temporary directory.
+  * Processes all GFF and FASTA files inside the archive.
+  * Checks if sequences are present in each GFF file.
+  * If sequences are missing, prompts the user to provide the corresponding FASTA file.
+  * Generates intron files, preprocessed FASTA files, and a ZIP archive containing intron FASTA files.
+
+**Example 2: Batch Processing for a Directory**
+```bash
+python main_v0.2.py --input data/input_directory --batch --output introns_output
+```
+
+* **What it does:**
+  * Processes all GFF and FASTA files in the specified directory.
+  * Checks if sequences are present in each GFF file.
+  * If sequences are missing, prompts the user to provide the corresponding FASTA file.
+  * Generates intron files, preprocessed FASTA files, and a ZIP archive containing intron FASTA files.
+
+**Example 3: Single File with Sequences**
+```bash
+python main_v0.2.py --input data/Dioscorea_dumetorum_contig1.gff --output introns_output
+```
+
+* **What it does:**
+  * Detects that the GFF file contains sequences.
+  * Processes the file to extract introns, create a database, and generate output files.
+  * Generates a ZIP archive containing intron FASTA files.
+
+**Example 4: Single File Without Sequences**
+```bash
+python main_v0.2.py --input data/no_sequences.gff --fasta data/Dioscorea_dumetorum_contig1.fasta --output introns_output
+```
+
+* **What it does:**
+  * Detects that the GFF file does not contain sequences.
+  * Uses the provided FASTA file to add sequences to the database.
+  * Processes the file to extract introns, create a database, and generate output files.
+  * Generates a ZIP archive containing intron FASTA files.
+
+---
 
 ### Output
 The script will generate:
 - Preprocessed FASTA files (e.g., `Dioscorea_dumetorum_contig1_preprocessed.fasta`) if needed.
 - A ZIP archive (`introns.zip`) containing FASTA files for each intron.
 
-## Functions by Module
-
-### `metadata.py`
-- Defines the database schema and metadata.
-
-### `gff_processing.py`
-- **`make_introns_file(in_file, out_file)`**: Extracts intron information from a GFF file and writes it to an output file.
-
-### `database.py`
-- **`create_database(introns_file)`**: Creates an in-memory SQLite database and populates it with intron information.
-
-### `fasta_processing.py`
-- **`preprocess_fasta(fasta_file, out_file)`**: Preprocesses a FASTA file to ensure each contig's sequence is on a single line.
-- **`is_fasta_preprocessed(fasta_file)`**: Checks if the FASTA file is already in the correct format (one line per sequence).
-- **`add_sequences(engine, fasta_file)`**: Updates the database with sequences from the FASTA file.
-
-### `output.py`
-- **`write_fastas_zip(engine, out_dir_name)`**: Writes FASTA files for each intron in the database into a ZIP archive.
-
-### `batch_processing.py`
-- **`process_batch(input_dir, output_dir)`**: Processes multiple GFF and FASTA files in a specified directory.
-
 ## Debugging
 
 - If the database is not updating correctly, check the `add_sequences` function for issues with `contig` matching or sequence slicing.
 - Use debug prints or the logging module to verify the flow of data and the content of the database.
-
-## Example Output
-
-### Preprocessed FASTA File:
-```
->contig1
-ATCGATCGGATCGATC
->contig2
-TTGGAACC
-```
-
-### Example FASTA File in ZIP Archive:
-File: `contig1_intron_9878-10009.fasta`
-```
->contig1 intron 9878-10009 + some_observation
-ATCGATCGGATCGATC
-```
 
 ## License
 
