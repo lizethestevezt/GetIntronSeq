@@ -1,8 +1,6 @@
-from input_processing import make_introns_file, input_contains_introns, input_contains_sequences, make_fasta_file
-from database import create_database
-from fasta_processing import preprocess_fasta, is_fasta_preprocessed, add_sequences
-from output import write_fastas_zip
-from file_type_validation import detect_file_format
+from input_processing import process_single_file, extract_gzip
+from batch_processing import process_batch
+import os
 import argparse
 
 def main():
@@ -24,50 +22,39 @@ def main():
         default="introns",
         help="Name of the output directory or ZIP archive (default: 'introns')."
     )
+    parser.add_argument(
+    "--batch",
+    action="store_true",
+    help="Enable batch processing for multiple files in a directory or GZIP archive."
+    )
     args = parser.parse_args()
 
     # Extract arguments
     input_file = args.input
     fasta_file = args.fasta
     output_name = args.output
+    batch_mode = args.batch
 
-    # Detect file format
-    format_type = detect_file_format(input_file)
-    print(f"Detected file format: {format_type}")
-
-    if format_type == "Unknown":
-        raise ValueError("Unsupported file format. Please provide GFF, GFF3 or GTF file.")
-
-    # Check if the input file contains introns
-    if not input_contains_introns(input_file):
-        print("The input file does not contain introns. Exiting.")
+    # Handle GZIP files
+    if input_file.endswith(".gz"):
+        print(f"Extracting GZIP file: {input_file}")
+        gzip_dir = os.path.splitext(input_file)[0] + "_extracted"
+        extracted_file = extract_gzip(input_file, gzip_dir)
+        batch_mode = True  # Set batch mode to True for GZIP extraction
+        if batch_mode:
+            process_batch(gzip_dir, output_name)
+        else:
+            process_single_file(extracted_file, fasta_file, output_name)
         return
 
-    # Check if the input file contains sequences
-    if not input_contains_sequences(input_file):
-        if not fasta_file:
-            raise ValueError("The input file does not contain sequences. Please provide a FASTA file using the --fasta argument.")
-    else:
-        # If sequences are present in the input file, use it as the FASTA file
-        fasta_file = make_fasta_file(input_file)
-        print(f"FASTA file created: {fasta_file}")
+    # Handle directories in batch mode
+    if batch_mode and os.path.isdir(input_file):
+        print(f"Batch processing directory: {input_file}")
+        process_batch(input_file, output_name)
+        return
 
-    # Process the input file to extract introns
-    introns_file = make_introns_file(input_file)
-
-    # Create the database
-    db = create_database(introns_file)
-
-    # Check if the FASTA file needs preprocessing
-    if not is_fasta_preprocessed(fasta_file):
-        fasta_file = preprocess_fasta(fasta_file)  # Use the preprocessed file
-
-    # Add sequences to the database and write FASTA files to a ZIP archive
-    db = add_sequences(db, fasta_file)
-    write_fastas_zip(db, output_name)
-
-    print("Processing completed successfully.")
+    # Process a single file
+    process_single_file(input_file, fasta_file, output_name)
 
 if __name__ == "__main__":
     main()
-

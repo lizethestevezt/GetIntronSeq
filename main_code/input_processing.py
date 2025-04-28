@@ -1,7 +1,13 @@
 import gffutils
 import logging
 from logger_config import setup_logger
+from file_type_validation import detect_file_format
+from database import create_database, add_sequences
+from fasta_processing import preprocess_fasta, is_fasta_preprocessed
+from output import write_fastas_zip
+import shutil
 import os
+import gzip
 
 # Setup logger
 setup_logger("GetIntronSeq.log")
@@ -57,3 +63,55 @@ def input_contains_sequences(input_file):
             return True
     return False
 
+#Function to process gzip files
+def extract_gzip(input_file, output_dir):
+    """
+    Extracts a GZIP file into the specified output directory.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    extracted_file_path = os.path.join(output_dir, os.path.basename(input_file).replace(".gz", ""))
+    with gzip.open(input_file, 'rb') as f_in:
+        with open(extracted_file_path, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    return extracted_file_path
+
+def process_single_file(input_file, fasta_file, output_name):
+    """
+    Processes a single GFF file to extract introns and generate output.
+    """
+    # Detect file format
+    format_type = detect_file_format(input_file)
+    print(f"Detected file format: {format_type}")
+
+    if format_type == "Unknown":
+        raise ValueError("Unsupported file format. Please provide GFF, GFF3, or GTF file.")
+
+    # Check if the input file contains introns
+    if not input_contains_introns(input_file):
+        print("The input file does not contain introns. Exiting.")
+        return
+
+    # Check if the input file contains sequences
+    if not input_contains_sequences(input_file):
+        if not fasta_file:
+            raise ValueError("The input file does not contain sequences. Please provide a FASTA file using the --fasta argument.")
+    else:
+        # If sequences are present in the input file, use it as the FASTA file
+        fasta_file = make_fasta_file(input_file)
+        print(f"FASTA file created: {fasta_file}")
+
+    # Process the input file to extract introns
+    introns_file = make_introns_file(input_file)
+
+    # Create the database
+    db = create_database(introns_file)
+
+    # Check if the FASTA file needs preprocessing
+    if not is_fasta_preprocessed(fasta_file):
+        fasta_file = preprocess_fasta(fasta_file)  # Use the preprocessed file
+
+    # Add sequences to the database and write FASTA files to a ZIP archive
+    db = add_sequences(db, fasta_file)
+    write_fastas_zip(db, output_name)
+
+    print(f"Processing of {input_file} completed successfully.")
