@@ -32,58 +32,80 @@ def preprocess_fasta(fasta_file):
     logging.info(f"FASTA file preprocessed and saved to {out_file}")
     return out_file
 
+def parse_fasta(fasta_file):
+    """
+    Parses a FASTA file and returns a dictionary of contig names and their sequences.
+    """
+    logging.info(f"Parsing FASTA file: {fasta_file}")
+    sequences = {}
+    with open(fasta_file, "r") as fasta:
+        contig = None
+        sequence = []
+        for line in fasta:
+            line = line.strip()
+            if line.startswith(">"):  # Header line
+                if contig:  # Save the previous contig and its sequence
+                    sequences[contig] = "".join(sequence)
+                contig = line.lstrip(">").strip()  # Extract contig name
+                sequence = []  # Reset sequence
+            else:
+                sequence.append(line)  # Append sequence line
+        if contig:  # Save the last contig and its sequence
+            sequences[contig] = "".join(sequence)
+    logging.info(f"FASTA file parsed successfully: {len(sequences)} contigs found.")
+    return sequences
+
 # Function to add sequences from a FASTA file to the database
 def add_sequences(engine, fasta_file):
     """
     Updates the database with sequences from the FASTA file.
+    Ensures no duplicate sequences are added for the same intron.
     """
     logging.info(f"Adding sequences from FASTA file: {fasta_file}")
-    with open(fasta_file, "r") as fasta:
-        contig = None  
-        sequence = ""  
+    sequences = parse_fasta(fasta_file)  # Parse the FASTA file
 
-        with engine.begin() as conn:
-            for line in fasta:
-                line = line.strip()
-                if line.startswith(">"):  # Header line
-                    contig = line.lstrip(">").strip()
-                    sequence = next(fasta).strip() #This is what I needed, this makes it read the next line in the file although I'm in a for loop and not a while loop
-                    # Now I get the relevant intron records
-                    genes_stmt = sql.select(genes.c.contig, genes.c.gene)\
-                        .where(genes.c.contig == contig) # here the last part is going trough the database and fetching the relevant info for the current contig
-                    gene_row = conn.execute(genes_stmt).fetchone()
-                    if gene_row: #I go through the introns table to update once I've found the gene, I extract it into a variable and then I can do everything else
-                        gene = gene_row.gene
-                        introns_stmt = sql.select(introns.c.gene, introns.c.beg, introns.c.end)\
-                            .where(introns.c.gene == gene) # here the last part is going trough the database and fetching the relevant info for the current contig
-                        genes_result = conn.execute(genes_stmt)
-                        introns_result = conn.execute(introns_stmt)
-                        # Fetch all rows from the result
-                        genes_rows = genes_result.fetchall()
-                        introns_rows = introns_result.fetchall()
+    with engine.begin() as conn:
+        for contig, sequence in sequences.items():
+            # Query the database for genes associated with the current contig
+            genes_stmt = sql.select(genes.c.gene).where(genes.c.contig == contig)
+            gene_rows = conn.execute(genes_stmt).fetchall()
 
-                        # Now I can iterate through the rows and update the db with the sequences
-                        for row in introns_rows:
-                            seq_slice = sequence[int(row.beg):int(row.end)]
-                            #now I make an update sql statement, store it in a variable so I can execute it later
-                            update_introns_stmt = sql.update(introns)\
-                                .where(
-                                    (introns.c.gene == gene) & #gets the current contig inside the db
-                                    (introns.c.beg == row.beg) & #gets the same beg value in the contig in the db
-                                    (introns.c.end == row.end) #finally matches the end, that way everything is matched
-                                )\
-                                .values(seq=seq_slice)  # gives the seq_slice variable to update seq in the db
-                            conn.execute(update_introns_stmt)  # Execute the update statement
+            for gene_row in gene_rows:
+                gene = gene_row.gene
 
-                            # I need to check if the update was succesfull
-                            check_stmt = sql.select(introns.c.gene)\
-                                .where(
-                                    (introns.c.gene == gene) &
-                                    (introns.c.beg == row.beg) &
-                                    (introns.c.end == row.end) 
-                                )
-                            updated_row = conn.execute(check_stmt).fetchone()
-        logging.info(f"Sequences added to the database from {fasta_file}")
+                # Query the database for introns associated with the current gene
+                introns_stmt = sql.select(introns.c.gene, introns.c.beg, introns.c.end).where(introns.c.gene == gene)
+                introns_rows = conn.execute(introns_stmt).fetchall()
+
+                for intron_row in introns_rows:
+                    beg = intron_row.beg
+                    end = intron_row.end
+
+                    # Extract the sequence slice for the intron
+                    seq_slice = sequence[beg:end]
+
+                    # Check if the sequence already exists in the database
+                    existing_entry = conn.execute(
+                        sql.select(introns.c.seq).where(
+                            (introns.c.gene == gene) &
+                            (introns.c.beg == beg) &
+                            (introns.c.end == end)
+                        )
+                    ).fetchone()
+
+                    if existing_entry and existing_entry[0] == seq_slice:
+                        logging.warning(f"Duplicate sequence detected for gene {gene}, intron {beg}-{end}. Skipping.")
+                        continue
+
+                    # Update the introns table with the sequence
+                    update_introns_stmt = sql.update(introns).where(
+                        (introns.c.gene == gene) &
+                        (introns.c.beg == beg) &
+                        (introns.c.end == end)
+                    ).values(seq=seq_slice)
+                    conn.execute(update_introns_stmt)
+
+    logging.info(f"Sequences added to the database from {fasta_file}")
     return engine
 
 # Function to check if a FASTA file is already preprocessed

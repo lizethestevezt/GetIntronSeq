@@ -8,7 +8,7 @@ from output import write_fastas_zip
 from logger_config import setup_logger
 
 # Setup logger
-setup_logger("batch_processing.log")
+setup_logger("GetIntronSeq.log")
 
 # This script processes multiple GFF and FASTA files in a specified directory.
 def process_batch(input_dir, output_dir):
