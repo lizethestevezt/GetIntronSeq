@@ -18,9 +18,8 @@ def main():
     )
     parser.add_argument(
         "--output",
-        required=False,
-        default="introns",
-        help="Name of the output directory or ZIP archive (default: 'introns')."
+        required=True,
+        help="Name of the output directory or ZIP archive."
     )
     parser.add_argument(
     "--batch",
