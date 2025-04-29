@@ -1,9 +1,9 @@
 import os
 import logging
-from input_processing import make_introns_file, input_contains_sequences
+from input_processing import make_introns_file, input_contains_sequences, add_sequences
 from file_type_validation import detect_file_format
 from fasta_processing import preprocess_fasta, is_fasta_preprocessed
-from database import create_database, add_sequences
+from database import create_database
 from output import write_fastas_zip
 from logger_config import setup_logger
 
