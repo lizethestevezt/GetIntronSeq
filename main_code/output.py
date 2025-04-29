@@ -25,7 +25,7 @@ def write_fastas_zip(engine, out_dir_name):
                 introns.c.seq,
                 introns.c.ori,
                 introns.c.obs
-            )
+            ).join(introns, genes.c.gene == introns.c.gene)
             result = conn.execute(result_stmt)
             rows = result.fetchall()
 

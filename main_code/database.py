@@ -18,22 +18,10 @@ def create_database(introns_file):
 
     with open(introns_file, "r") as file:
         with engine.begin() as conn:
-            # Fetch all existing genes and introns into memory
-            existing_genes = {
-                row.gene: row.contig for row in conn.execute(sql.select(genes.c.gene, genes.c.contig)).fetchall()
-            }
-            existing_introns = {
-                gene: set(
-                    (row.beg, row.end, row.ori)
-                    for row in conn.execute(
-                        sql.select(introns.c.beg, introns.c.end, introns.c.ori).where(introns.c.gene == gene)
-                    )
-                )
-                for gene in existing_genes
-            }
-
             # Initialize intron counts for each gene
-            intron_counts = {gene: len(existing_introns[gene]) for gene in existing_genes}
+            intron_counts = {}
+            existing_genes = {}
+            existing_introns = {}
 
             for line in file:
                 # Parse the intron information
