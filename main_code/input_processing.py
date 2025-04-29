@@ -2,8 +2,8 @@ import gffutils
 import logging
 from logger_config import setup_logger
 from file_type_validation import detect_file_format
-from database import create_database, add_sequences
-from fasta_processing import preprocess_fasta, is_fasta_preprocessed
+from database import create_database
+from fasta_processing import preprocess_fasta, is_fasta_preprocessed, add_sequences
 from output import write_fastas_zip
 import shutil
 import os
